@@ -1,5 +1,7 @@
+import { LoaderArgs } from '@remix-run/node';
 import { Link, useLoaderData } from '@remix-run/react';
 import { db } from '~/utils/db.server';
+import { getUser } from '~/utils/session.server';
 
 type Post = {
   id: string;
@@ -9,28 +11,32 @@ type Post = {
   updatedAt: Date;
 };
 
-export const loader = async () => {
+export const loader = async ({ request }: LoaderArgs) => {
+  const user = await getUser(request);
   const data = {
     posts: await db.post.findMany({
       take: 20,
       select: { id: true, title: true, createdAt: true },
       orderBy: { createdAt: 'desc' },
     }),
+    user,
   };
 
   return data;
 };
 
 function PostItems() {
-  const { posts } = useLoaderData();
+  const { posts, user } = useLoaderData();
 
   return (
     <>
       <div className="page-header">
         <h1>Posts</h1>
-        <Link to={'new'} className="btn">
-          New Post
-        </Link>
+        {user && (
+          <Link to={'new'} className="btn">
+            New Post
+          </Link>
+        )}
       </div>
       <ul className="posts-list">
         {posts.map((post: Post) => (
