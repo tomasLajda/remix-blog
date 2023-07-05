@@ -1,3 +1,9 @@
+import type { LoaderArgs } from '@remix-run/node';
+import type { ReactNode } from 'react';
+import type {
+  LinksFunction,
+  V2_MetaFunction,
+} from '@remix-run/react/dist/routeModules';
 import {
   Outlet,
   ScrollRestoration,
@@ -8,12 +14,10 @@ import {
   Meta,
   useRouteError,
   isRouteErrorResponse,
+  useLoaderData,
 } from '@remix-run/react';
-import type { ReactNode } from 'react';
-import type {
-  LinksFunction,
-  V2_MetaFunction,
-} from '@remix-run/react/dist/routeModules';
+
+import { getUser } from './utils/session.server';
 
 import globalStylesUrl from '~/styles/global.css';
 
@@ -32,6 +36,14 @@ export const meta: V2_MetaFunction = () => {
     { charset: 'utf-8' },
     { name: 'viewport', content: 'width=device-width, initial-scale=1.0' },
   ];
+};
+
+export const loader = async ({ request }: LoaderArgs) => {
+  const user = await getUser(request);
+  const data = {
+    user,
+  };
+  return data;
 };
 
 export default function App() {
@@ -60,6 +72,8 @@ function Document({ children }: { children: ReactNode }) {
 }
 
 function Layout({ children }: { children: ReactNode }) {
+  const { user } = useLoaderData();
+
   return (
     <>
       <nav className="navbar">
@@ -67,7 +81,22 @@ function Layout({ children }: { children: ReactNode }) {
           Remix
         </Link>
         <ul className="nav">
-          <Link to="/posts">Posts</Link>
+          <li>
+            <Link to="/posts">Posts</Link>
+          </li>
+          {user ? (
+            <li>
+              <form action="/auth/logout" method="POST">
+                <button className="btn" type="submit">
+                  Logout {user.username}
+                </button>
+              </form>
+            </li>
+          ) : (
+            <li>
+              <Link to="/auth/login">Login</Link>
+            </li>
+          )}
         </ul>
       </nav>
       <div className="container">{children}</div>
